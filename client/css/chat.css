@@ -1,0 +1,36 @@
+.chat {
+  width: 25%;
+}
+body {
+  font: 18px Helvetica, Arial;
+}
+form {
+  background: white;
+  padding: 3px;
+  position: fixed;
+  bottom: 0;
+  width: 25%;
+}
+form input {
+  width: 68%;
+  height: 40px;
+  margin-left: .5%;
+}
+form button {
+  width: 27%;
+  height: 40px;
+  background: light-grey;
+  border: black;
+  margin-left: 5px;
+}
+#messages {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+#messages li {
+  padding: 5px 10px;
+}
+#messages li:nth-child(odd) {
+  background: #eee;
+}

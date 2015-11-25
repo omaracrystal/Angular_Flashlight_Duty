@@ -2,44 +2,56 @@ var app = angular.module("myApp", ["ngRoute"]);
 
 app.config(function($routeProvider) {
     $routeProvider
-    //login page
+  //home page intro animation page
       .when('/', {
-        templateUrl: '../partials/login.html',
+        templateUrl: '../partials/home.html',
         controller: 'loginController',
         access: {restricted: false}
       })
-      //login successful
-      .when('/list', {
-        templateUrl: '../partials/myList.html',
+  //darkroom, play area page
+      .when('/darkroom', {
+        templateUrl: '../partials/darkroom.html',
         controller: 'myController',
-        access: {restricted: true}
-      })
-      .when('/logout', {
-        controller: 'logoutController',
-        access: {restricted: true}
-      })
-      .when('/about', {
-        templateUrl: '../partials/about.html',
-        controller: 'registerController',
         access: {restricted: false}
       })
-      .when('/contact', {
-        templateUrl: '../partials/contact.html',
-        controller: 'registerController',
-        access: {restricted: false}
-      })
+  //registration popup
       .when('/register', {
         templateUrl: '../partials/register.html',
         controller: 'registerController',
         access: {restricted: false}
       })
-      .when('/recommended', {
-        templateUrl: '../partials/recommended.html',
+  //login popup
+      .when('/login', {
+        templateUrl: '../partials/login.html',
+        controller: 'registerController',
+        access: {restricted: false}
+      })
+  //log functionality
+      .when('/logout', {
+        controller: 'logoutController',
+        access: {restricted: true}
+      })
+  //about page
+      .when('/about', {
+        templateUrl: '../partials/about.html',
+        controller: 'registerController',
+        access: {restricted: false}
+      })
+  //contact page
+      .when('/contact', {
+        templateUrl: '../partials/contact.html',
+        controller: 'registerController',
+        access: {restricted: false}
+      })
+  //profile page
+      .when('/profile', {
+        templateUrl: '../partials/profile.html',
         controller: 'myController',
         access: {restricted: true}
       })
-      .when('/search', {
-        templateUrl: '../partials/searchOptions.html',
+  //d3 stats
+      .when('/d3', {
+        templateUrl: '../partials/d3.html',
         controller: 'myController',
         access: {restricted: true}
       })

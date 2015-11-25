@@ -12,16 +12,15 @@ var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
 var session = require('express-session');
 var User = require('./models/user.js');
-var ListingsSchema = require('./models/url.js');
-var Mylist = require('./models/mylist.js');
-var Keywords = require('./models/keywords.js');
+var ScoreSchema = require('./models/score.js');
+var nio = require('niojs');
 
 //mongoose
 mongoose.connect('mongodb://localhost/mean-auth');
 
 // *** routes *** //
 // var routes = require('./routes/index.js');
-var apiRoutes = require('./routes/api.js');
+var apiRoutes = require('./routes/scoreAPI.js');
 var user = require('./routes/userAPI.js');
 
 // *** express instance *** //

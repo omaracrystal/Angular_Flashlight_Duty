@@ -65,10 +65,10 @@ menu: Profile, About, How to play, logout
 
 **Main Page**                       |    |**Trivia Pop-Up**
 :----------------------------------:|:--:|:----------------------------------:
-![](/src/client/images/main2.png)      |    | ![](/src/client/images/main3.png)
+![](/client/images/main2.png)      |    | ![](/client/images/main3.png)
 
 
-![](/src/client/images/main1.png)
+![](/client/images/main1.png)
 
 #### References:
 - https://www.meteor.com/tutorials/blaze/running-on-mobile

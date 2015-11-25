@@ -5,7 +5,7 @@ mongoose.connection.on('error', function() {
 });
 
 var ScoreSchema = new mongoose.Schema({
-  Score: Number;
+  Score: Number,
   Correct: [],
   Wrong: [],
 });

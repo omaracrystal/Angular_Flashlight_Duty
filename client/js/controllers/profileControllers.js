@@ -11,6 +11,7 @@ app.controller("profileController", ["$scope", "httpFactory", "$timeout", functi
     //all scores
     console.log($scope.allScore);
     $scope.score = "";
+  };
 }]);
 
 app.controller("d3Controller", ["$scope", "httpFactory", "$timeout", function($scope, httpFactory, $timeout){

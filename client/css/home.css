@@ -32,7 +32,7 @@
   content: '';
 }
 .envelope .universe:before {
-  background-image: url('http://agenciavirtude.com.br/antigo/images/universe1.png');
+  background-image: url('../images/eye.png');
   background-repeat: no-repeat;
   background-size: 100% auto;
   background-position: center top;
@@ -44,7 +44,7 @@
   bottom: 0;
 }
 .envelope .universe:after {
-  background-image: url('http://agenciavirtude.com.br/antigo/images/universe2.png');
+  background-image: url('../images/eye.png');
   background-repeat: no-repeat;
   background-size: 100% auto;
   background-position: center center;
@@ -140,7 +140,7 @@
   overflow: hidden;
   opacity: 0;
 }
-.envelope .logo .subsub {
+.envelope .logo .play {
   width: 120px;
   display: block;
   position: absolute;
@@ -166,8 +166,13 @@
 .name {
   letter-spacing: .1em;
   font-size: 3em;
-  margin-top: .7em;
+  margin-top: .5em;
   font-weight: 200;
+  -webkit-transition: all 1s;
+  -moz-transition: all 1s;
+  -ms-transition: all 1s;
+  -o-transition: all 1s;
+  transition: all 1s;
 }
 
 
@@ -588,7 +593,7 @@
     letter-spacing: 5px;
   }
 }
-.envelope .logo .subsub {
+.envelope .logo .play {
   -webkit-animation: appear1 5s forwards;
   -moz-animation: appear1 5s forwards;
   animation: appear1 5s forwards;

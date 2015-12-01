@@ -1,7 +1,5 @@
 app.controller("darkroomController", ["$scope", "httpFactory", "$timeout", function($scope, httpFactory, $timeout){
 
-
-
   (function darkroom(){
     function flashlightOff() {
       $(this).css({

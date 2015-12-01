@@ -5,7 +5,7 @@ app.config(function($routeProvider) {
   //home page intro animation page
       .when('/', {
         templateUrl: '../partials/home.html',
-        controller: 'loginController',
+        controller: 'homeController',
         access: {restricted: false}
       })
   //darkroom, play area page

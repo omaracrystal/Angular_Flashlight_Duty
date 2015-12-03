@@ -4,6 +4,7 @@ app.directive("darkroom", function() {
     templateUrl: '../partials/darkroom.html',
     replace: false,
     scope: {
+
     }
   };
 });

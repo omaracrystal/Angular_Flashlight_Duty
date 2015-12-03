@@ -2,6 +2,8 @@
 var dotenv = require('dotenv');
 dotenv.load();
 var express = require('express');
+// *** express instance *** //
+var app = express();
 var path = require('path');
 var favicon = require('serve-favicon');
 var logger = require('morgan');
@@ -15,6 +17,18 @@ var User = require('./models/user.js');
 var ScoreSchema = require('./models/score.js');
 var nio = require('niojs');
 
+////>>>> ALERT ADDED 30th
+// var http = require('http').Server(app);
+// var io = require('socket.io')(http);
+//** connect to socket.io ***//
+// io.on('connection', function(socket){
+//   socket.on('chat message', function(msg){
+//     io.emit('chat message', msg);
+//   });
+// });
+
+
+
 //mongoose
 mongoose.connect('mongodb://localhost/mean-auth');
 
@@ -23,12 +37,10 @@ mongoose.connect('mongodb://localhost/mean-auth');
 var apiRoutes = require('./routes/scoreAPI.js');
 var user = require('./routes/userAPI.js');
 
-// *** express instance *** //
-var app = express();
-
 
 // *** static directory *** //
 // app.set('views', path.join(__dirname, 'views'));
+
 
 
 // *** config middleware *** //
@@ -48,8 +60,8 @@ app.use(express.static(path.join(__dirname, '../client')));
 
 // *** main routes *** //
 // app.use('/', routes);
-app.use('/api/v1/', apiRoutes);
-app.use('/auth/', user);
+// app.use('/api/v1/', apiRoutes);
+// app.use('/auth/', user);
 
 ///THIS IS NECESARY - unclear what it's doing
 app.get('/', function(req, res){

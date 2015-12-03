@@ -1,6 +1,308 @@
-function nio() {
+app.controller("darkroomController", ["$scope", "httpFactory", "$timeout", function($scope, httpFactory, $timeout){
 
-  (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+  (function darkroom(){
+    function flashlightOff() {
+      $(this).css({
+          '-webkit-mask-image': ''
+        });
+      }
+
+      function flashlight(e) {
+        var mouseX = e.pageX - $(this).offset().left;
+        var mouseY = e.pageY - $(this).offset().top;
+        $(this).css({
+          '-webkit-mask-image': 'radial-gradient(circle 60px at ' + mouseX + 'px ' + mouseY + 'px, rgba(255,255,255,1) 60%, rgba(255,255,255,0) 100%)',
+          'cursor': 'none'
+        });
+
+      }
+
+      function updateImg() {
+        $('.masked').attr('src', 'http://www.placekitten.com/' + $(window).width() + '/' + $(window).height());
+      }
+
+
+      $('.masked').on({
+        'mousemove': flashlight,
+        'mouseleave': flashlightOff
+      });
+  })();
+
+
+
+  (function chat(){
+    $(function() {
+      var FADE_TIME = 150; // ms
+      var TYPING_TIMER_LENGTH = 400; // ms
+      var COLORS = [
+        '#e21400', '#91580f', '#f8a700', '#f78b00',
+        '#58dc00', '#287b00', '#a8f07a', '#4ae8c4',
+        '#3b88eb', '#3824aa', '#a700ff', '#d300e7'
+      ];
+
+      // Initialize variables
+      var $window = $(window);
+      var $usernameInput = $('.usernameInput'); // Input for username
+      var $messages = $('.messages'); // Messages area
+      var $inputMessage = $('.inputMessage'); // Input message input box
+
+      var $loginPage = $('.login.page'); // The login page
+      var $chatPage = $('.chat.page'); // The chatroom page
+
+      // Prompt for setting a username
+      var username;
+      var connected = false;
+      var typing = false;
+      var lastTypingTime;
+      var $currentInput = $usernameInput.focus();
+
+      var socket = io();
+
+      function addParticipantsMessage (data) {
+        var message = '';
+        if (data.numUsers === 1) {
+          message += "there's 1 participant";
+        } else {
+          message += "there are " + data.numUsers + " participants";
+        }
+        log(message);
+      }
+
+      // Sets the client's username
+      function setUsername () {
+        username = cleanInput($usernameInput.val().trim());
+
+        // If the username is valid
+        if (username) {
+          $loginPage.fadeOut();
+          $chatPage.show();
+          $loginPage.off('click');
+          $currentInput = $inputMessage.focus();
+
+          // Tell the server your username
+          socket.emit('add user', username);
+        }
+      }
+
+      // Sends a chat message
+      function sendMessage () {
+        var message = $inputMessage.val();
+        // Prevent markup from being injected into the message
+        message = cleanInput(message);
+        // if there is a non-empty message and a socket connection
+        if (message && connected) {
+          $inputMessage.val('');
+          addChatMessage({
+            username: username,
+            message: message
+          });
+          // tell server to execute 'new message' and send along one parameter
+          socket.emit('new message', message);
+        }
+      }
+
+      // Log a message
+      function log (message, options) {
+        var $el = $('<li>').addClass('log').text(message);
+        addMessageElement($el, options);
+      }
+
+      // Adds the visual chat message to the message list
+      function addChatMessage (data, options) {
+        // Don't fade the message in if there is an 'X was typing'
+        var $typingMessages = getTypingMessages(data);
+        options = options || {};
+        if ($typingMessages.length !== 0) {
+          options.fade = false;
+          $typingMessages.remove();
+        }
+
+        var $usernameDiv = $('<span class="username"/>')
+          .text(data.username)
+          .css('color', getUsernameColor(data.username));
+        var $messageBodyDiv = $('<span class="messageBody">')
+          .text(data.message);
+
+        var typingClass = data.typing ? 'typing' : '';
+        var $messageDiv = $('<li class="message"/>')
+          .data('username', data.username)
+          .addClass(typingClass)
+          .append($usernameDiv, $messageBodyDiv);
+
+        addMessageElement($messageDiv, options);
+      }
+
+      // Adds the visual chat typing message
+      function addChatTyping (data) {
+        data.typing = true;
+        data.message = 'is typing';
+        addChatMessage(data);
+      }
+
+      // Removes the visual chat typing message
+      function removeChatTyping (data) {
+        getTypingMessages(data).fadeOut(function () {
+          $(this).remove();
+        });
+      }
+
+      // Adds a message element to the messages and scrolls to the bottom
+      // el - The element to add as a message
+      // options.fade - If the element should fade-in (default = true)
+      // options.prepend - If the element should prepend
+      //   all other messages (default = false)
+      function addMessageElement (el, options) {
+        var $el = $(el);
+
+        // Setup default options
+        if (!options) {
+          options = {};
+        }
+        if (typeof options.fade === 'undefined') {
+          options.fade = true;
+        }
+        if (typeof options.prepend === 'undefined') {
+          options.prepend = false;
+        }
+
+        // Apply options
+        if (options.fade) {
+          $el.hide().fadeIn(FADE_TIME);
+        }
+        if (options.prepend) {
+          $messages.prepend($el);
+        } else {
+          $messages.append($el);
+        }
+        $messages[0].scrollTop = $messages[0].scrollHeight;
+      }
+
+      // Prevents input from having injected markup
+      function cleanInput (input) {
+        return $('<div/>').text(input).text();
+      }
+
+      // Updates the typing event
+      function updateTyping () {
+        if (connected) {
+          if (!typing) {
+            typing = true;
+            socket.emit('typing');
+          }
+          lastTypingTime = (new Date()).getTime();
+
+          setTimeout(function () {
+            var typingTimer = (new Date()).getTime();
+            var timeDiff = typingTimer - lastTypingTime;
+            if (timeDiff >= TYPING_TIMER_LENGTH && typing) {
+              socket.emit('stop typing');
+              typing = false;
+            }
+          }, TYPING_TIMER_LENGTH);
+        }
+      }
+
+      // Gets the 'X is typing' messages of a user
+      function getTypingMessages (data) {
+        return $('.typing.message').filter(function (i) {
+          return $(this).data('username') === data.username;
+        });
+      }
+
+      // Gets the color of a username through our hash function
+      function getUsernameColor (username) {
+        // Compute hash code
+        var hash = 7;
+        for (var i = 0; i < username.length; i++) {
+           hash = username.charCodeAt(i) + (hash << 5) - hash;
+        }
+        // Calculate color
+        var index = Math.abs(hash % COLORS.length);
+        return COLORS[index];
+      }
+
+      // Keyboard events
+
+      $window.keydown(function (event) {
+        // Auto-focus the current input when a key is typed
+        if (!(event.ctrlKey || event.metaKey || event.altKey)) {
+          $currentInput.focus();
+        }
+        // When the client hits ENTER on their keyboard
+        if (event.which === 13) {
+          if (username) {
+            sendMessage();
+            socket.emit('stop typing');
+            typing = false;
+          } else {
+            setUsername();
+          }
+        }
+      });
+
+      $inputMessage.on('input', function() {
+        updateTyping();
+      });
+
+      // Click events
+
+      // Focus input when clicking anywhere on login page
+      $loginPage.click(function () {
+        $currentInput.focus();
+      });
+
+      // Focus input when clicking on the message input's border
+      $inputMessage.click(function () {
+        $inputMessage.focus();
+      });
+
+      // Socket events
+
+      // Whenever the server emits 'login', log the login message
+      socket.on('login', function (data) {
+        connected = true;
+        // Display the welcome message
+        var message = "Welcome to Socket.IO Chat – ";
+        log(message, {
+          prepend: true
+        });
+        addParticipantsMessage(data);
+      });
+
+      // Whenever the server emits 'new message', update the chat body
+      socket.on('new message', function (data) {
+        addChatMessage(data);
+      });
+
+      // Whenever the server emits 'user joined', log it in the chat body
+      socket.on('user joined', function (data) {
+        log(data.username + ' joined');
+        addParticipantsMessage(data);
+      });
+
+      // Whenever the server emits 'user left', log it in the chat body
+      socket.on('user left', function (data) {
+        log(data.username + ' left');
+        addParticipantsMessage(data);
+        removeChatTyping(data);
+      });
+
+      // Whenever the server emits 'typing', show the typing message
+      socket.on('typing', function (data) {
+        addChatTyping(data);
+      });
+
+      // Whenever the server emits 'stop typing', kill the typing message
+      socket.on('stop typing', function (data) {
+        removeChatTyping(data);
+      });
+    });
+
+  })();
+
+
+  (function nio2(){
+    (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 'use strict';
 
 //
@@ -12651,47 +12953,47 @@ var has_require = typeof require !== 'undefined';
 
 // Check for global lodash, otherwise require it
 if (typeof _ === "undefined") {
-	if (has_require) {
-		var _ = require('lodash');
-	} else {
-		throw new Error('nio.js requires lodash');
-	}
+  if (has_require) {
+    var _ = require('lodash');
+  } else {
+    throw new Error('nio.js requires lodash');
+  }
 }
 
 module.exports = {
-	_: _,
-	eventemitter3: require('eventemitter3'),
-	inherits: require('inherits')
+  _: _,
+  eventemitter3: require('eventemitter3'),
+  inherits: require('inherits')
 };
 
 },{"eventemitter3":1,"inherits":2,"lodash":3}],5:[function(require,module,exports){
 "use strict";
 (function () {
 
-	var deps = require('./deps');
+  var deps = require('./deps');
 
-	var nio = deps._.assign(
-		{
-			_: deps._,
+  var nio = deps._.assign(
+    {
+      _: deps._,
 
-			_version: '1.1.3',
+      _version: '1.1.3',
 
-			// our modules
-			Stream: require('./stream'),
-			utils: require('./utils'),
-			source: require('./sources')
-		},
-		require('./streams')
-	);
+      // our modules
+      Stream: require('./stream'),
+      utils: require('./utils'),
+      source: require('./sources')
+    },
+    require('./streams')
+  );
 
 
     if (typeof module !== 'undefined' && module.exports) {
-		module.exports = nio;
+    module.exports = nio;
     }
 
-	// TODO: Is there a better way to check this?
-	if (typeof window !== 'undefined') {
-		window.nio = nio;
+  // TODO: Is there a better way to check this?
+  if (typeof window !== 'undefined') {
+    window.nio = nio;
     }
 })();
 
@@ -12703,57 +13005,57 @@ var inherits = deps.inherits;
 var Stream = require('../stream');
 
 function GenerateStream(dataTemplate, maxTimes, rate) {
-	if (!(this instanceof GenerateStream)) {
-		return new GenerateStream(dataTemplate, maxTimes, rate)
-	}
+  if (!(this instanceof GenerateStream)) {
+    return new GenerateStream(dataTemplate, maxTimes, rate)
+  }
 
-	this.dataTemplate = dataTemplate;
-	this.maxTimes = maxTimes;
-	this.rate = rate;
+  this.dataTemplate = dataTemplate;
+  this.maxTimes = maxTimes;
+  this.rate = rate;
 
-	this.numIterations = 0;
-	this.interval = false;
+  this.numIterations = 0;
+  this.interval = false;
 
-	_.defaults(this, {
-		dataTemplate: {},
-		rate: 100,
-		maxTimes: 1
-	});
+  _.defaults(this, {
+    dataTemplate: {},
+    rate: 100,
+    maxTimes: 1
+  });
 
-	Stream.call(this);
+  Stream.call(this);
 }
 
 inherits(GenerateStream, Stream);
 
 GenerateStream.prototype.oninit = function() {
-	this.interval = setInterval(this.generate.bind(this), this.rate);
-	return this;
+  this.interval = setInterval(this.generate.bind(this), this.rate);
+  return this;
 };
 
 GenerateStream.prototype.generate = function() {
-	if (this.maxTimes >= 0 && this.numIterations >= this.maxTimes) {
-		if (this.interval) {
-			clearInterval(this.interval);
-		}
-	} else {
-		this.push(this.getSignal(this.numIterations++));
-	}
+  if (this.maxTimes >= 0 && this.numIterations >= this.maxTimes) {
+    if (this.interval) {
+      clearInterval(this.interval);
+    }
+  } else {
+    this.push(this.getSignal(this.numIterations++));
+  }
 }
 
 GenerateStream.prototype.getSignal = function(iteration) {
-	if (_.isFunction(this.dataTemplate)) {
-		return this.dataTemplate(iteration);
-	} else {
-		return this.dataTemplate;
-	}
+  if (_.isFunction(this.dataTemplate)) {
+    return this.dataTemplate(iteration);
+  } else {
+    return this.dataTemplate;
+  }
 }
 
 module.exports = GenerateStream;
 
 },{"../deps":4,"../stream":9}],7:[function(require,module,exports){
 module.exports = {
-	socketio: require('./socketio'),
-	generate: require('./generate')
+  socketio: require('./socketio'),
+  generate: require('./generate')
 };
 
 },{"./generate":6,"./socketio":8}],8:[function(require,module,exports){
@@ -12764,88 +13066,88 @@ var Stream = require('../stream');
 var utils = require('../utils');
 
 function SocketIOStream(host, rooms, maxLookback) {
-	if (!(this instanceof SocketIOStream)) {
-		return new SocketIOStream(host, rooms, maxLookback);
-	}
-	this.host = host;
-	this.rooms = rooms;
-	this.maxLookback = maxLookback;
-	this.sock = null;
-	Stream.call(this);
+  if (!(this instanceof SocketIOStream)) {
+    return new SocketIOStream(host, rooms, maxLookback);
+  }
+  this.host = host;
+  this.rooms = rooms;
+  this.maxLookback = maxLookback;
+  this.sock = null;
+  Stream.call(this);
 }
 
 inherits(SocketIOStream, Stream);
 
 SocketIOStream.prototype.oninit = function () {
-	/* global io */
-	if (!window.io) {
-		var s = utils.script(this.host + '/socket.io/socket.io.js');
-		s.onload = function () { this.oninit() }.bind(this);
-		return this;
-	}
+  /* global io */
+  if (!window.io) {
+    var s = utils.script(this.host + '/socket.io/socket.io.js');
+    s.onload = function () { this.oninit() }.bind(this);
+    return this;
+  }
 
-	return this.connectToSocket();
+  return this.connectToSocket();
 };
 
 SocketIOStream.prototype.connectToSocket = function () {
 
-	var sock = this.sock = io.connect(this.host, {'force new connection': true});
+  var sock = this.sock = io.connect(this.host, {'force new connection': true});
 
-	sock.on('connect', function () {
-		_.each(this.rooms, function (room) {
-			if (typeof this.maxLookback == 'undefined') {
-				// use the legacy room joining method
-				sock.emit('ready', room);
-			} else {
-				sock.emit('ready', {
-					room: room,
-					fromTime: this.maxLookback
-				});
-			}
-		}, this);
-	}.bind(this));
+  sock.on('connect', function () {
+    _.each(this.rooms, function (room) {
+      if (typeof this.maxLookback == 'undefined') {
+        // use the legacy room joining method
+        sock.emit('ready', room);
+      } else {
+        sock.emit('ready', {
+          room: room,
+          fromTime: this.maxLookback
+        });
+      }
+    }, this);
+  }.bind(this));
 
-	sock.on('connect_failed', function (e) {
-		console.error('connection failed');
-		console.error(e);
-	});
+  sock.on('connect_failed', function (e) {
+    console.error('connection failed');
+    console.error(e);
+  });
 
-	sock.on('error', function (e) {
-		console.error('connection error');
-		console.error(e);
-	});
+  sock.on('error', function (e) {
+    console.error('connection error');
+    console.error(e);
+  });
 
-	sock.on('recvData', function (data) {
-		//if (this.state === Stream.STATES.PAUSE) return
-		this.push(JSON.parse(data));
-	}.bind(this));
+  sock.on('recvData', function (data) {
+    //if (this.state === Stream.STATES.PAUSE) return
+    this.push(JSON.parse(data));
+  }.bind(this));
 
-	return this;
+  return this;
 };
 
 SocketIOStream.prototype.onpause = function () {
-	if (this.sock) {
-		this.sock.disconnect();
-	}
-	this.sock = null;
+  if (this.sock) {
+    this.sock.disconnect();
+  }
+  this.sock = null;
 };
 
 SocketIOStream.prototype.onresume = function () {
-	if (this.sock && this.sock.connected) {
-		console.error("Resumed a connected socket...call pause first");
-		return;
-	}
-	this.connectToSocket();
+  if (this.sock && this.sock.connected) {
+    console.error("Resumed a connected socket...call pause first");
+    return;
+  }
+  this.connectToSocket();
 };
 
 
 // Write data back to our socket server when it's piped in
 SocketIOStream.prototype.onwrite = function (chunk) {
-	if (this.sock && this.sock.connected) {
-		this.sock.emit('pub', JSON.stringify(chunk));
-	} else {
-		console.error("Socket not connected or is paused");
-	}
+  if (this.sock && this.sock.connected) {
+    this.sock.emit('pub', JSON.stringify(chunk));
+  } else {
+    console.error("Socket not connected or is paused");
+  }
 };
 
 module.exports = SocketIOStream;
@@ -12870,28 +13172,28 @@ var EventEmitter = deps.eventemitter3;
  * @param {function} onwrite
  */
 function Stream(opts) {
-	if (!(this instanceof Stream)) {
-		return new Stream(opts);
-	}
-	EventEmitter.call(this);
+  if (!(this instanceof Stream)) {
+    return new Stream(opts);
+  }
+  EventEmitter.call(this);
 
-	// listen for events and call onevent functions
-	this.on('*', function () {
-		var args = [].slice.call(arguments);
-		var event = args[0];
-		var func = this['on' + event];
-		if (func) {
-			func.apply(this, args.slice(1));
-		}
-	})
+  // listen for events and call onevent functions
+  this.on('*', function () {
+    var args = [].slice.call(arguments);
+    var event = args[0];
+    var func = this['on' + event];
+    if (func) {
+      func.apply(this, args.slice(1));
+    }
+  })
 
-	if (_.isFunction(opts)) {
-		this.onwrite = opts;
-	}
-	else if (_.isPlainObject(opts)) {
-		_.assign(this, opts);
-	}
-	this.emit('init');
+  if (_.isFunction(opts)) {
+    this.onwrite = opts;
+  }
+  else if (_.isPlainObject(opts)) {
+    _.assign(this, opts);
+  }
+  this.emit('init');
 }
 
 inherits(Stream, EventEmitter);
@@ -12903,12 +13205,12 @@ inherits(Stream, EventEmitter);
  * @return {Stream}
  */
 Stream.prototype.emit = function () {
-	var args = [].slice.call(arguments);
-	EventEmitter.prototype.emit.apply(this, args);
+  var args = [].slice.call(arguments);
+  EventEmitter.prototype.emit.apply(this, args);
 
-	// emit the '*' event
-	args.unshift('*');
-	EventEmitter.prototype.emit.apply(this, args);
+  // emit the '*' event
+  args.unshift('*');
+  EventEmitter.prototype.emit.apply(this, args);
 }
 
 /**
@@ -12917,17 +13219,17 @@ Stream.prototype.emit = function () {
  * @param {*} chunk Arbitrary write sent down the pipeline.
  */
 Stream.prototype.push = function (chunk) {
-	if (this.state === Stream.STATES.PAUSE) {
-		this.broadcast('pauseddata', chunk);
-		return;
-	}
-	if (_.isUndefined(chunk) || _.isNull(chunk)) {
-		return;
-	}
-	if (_.isEmpty(chunk) && (_.isArray(chunk) || _.isPlainObject(chunk))) {
-		return;
-	}
-	this.emit('data', chunk);
+  if (this.state === Stream.STATES.PAUSE) {
+    this.broadcast('pauseddata', chunk);
+    return;
+  }
+  if (_.isUndefined(chunk) || _.isNull(chunk)) {
+    return;
+  }
+  if (_.isEmpty(chunk) && (_.isArray(chunk) || _.isPlainObject(chunk))) {
+    return;
+  }
+  this.emit('data', chunk);
 }
 
 /**
@@ -12939,9 +13241,9 @@ Stream.prototype.push = function (chunk) {
  * @param {*} chunk Arbitrary data sent down the pipeline.
  */
 Stream.prototype.write = function (chunk) {
-	if (this.onwrite) {
-		this.onwrite(chunk);
-	}
+  if (this.onwrite) {
+    this.onwrite(chunk);
+  }
 }
 
 /**
@@ -12953,7 +13255,7 @@ Stream.prototype.write = function (chunk) {
  * @override
  */
 Stream.prototype.onwrite = function (chunk) {
-	this.push(chunk);
+  this.push(chunk);
 }
 
 /**
@@ -12964,20 +13266,20 @@ Stream.prototype.onwrite = function (chunk) {
  * @return {Stream} The last stream in the pipeline. {@link Stream}
  */
 Stream.prototype.pipe = function () {
-	if (_.isArray(arguments[0])) {
-		return this.pipe.apply(this, arguments[0]);
-	}
-	var dest = arguments[0];
+  if (_.isArray(arguments[0])) {
+    return this.pipe.apply(this, arguments[0]);
+  }
+  var dest = arguments[0];
 
-	this.on('data', dest.write.bind(dest));
-	this.on('broadcast', dest.broadcast.bind(dest));
+  this.on('data', dest.write.bind(dest));
+  this.on('broadcast', dest.broadcast.bind(dest));
 
-	// use recursion to pipe the streams together
-	if (arguments.length > 1) {
-		var args = [].slice.call(arguments, 1);
-		dest.pipe.apply(dest, args);
-	}
-	return dest;
+  // use recursion to pipe the streams together
+  if (arguments.length > 1) {
+    var args = [].slice.call(arguments, 1);
+    dest.pipe.apply(dest, args);
+  }
+  return dest;
 }
 
 /**
@@ -12989,27 +13291,27 @@ Stream.prototype.pipe = function () {
  * @return {Stream} This stream.
  */
 Stream.prototype.broadcast = function () {
-	var args = [].slice.call(arguments);
-	args.unshift('broadcast');
-	this.emit.apply(this, args);
-	return this;
+  var args = [].slice.call(arguments);
+  args.unshift('broadcast');
+  this.emit.apply(this, args);
+  return this;
 }
 
 /**
  * onbroadcast emits the arguments to the broadcasted event.
  */
 Stream.prototype.onbroadcast = function () {
-	if (arguments.length === 0) {
-		console.warn('broadcast() called without any arguments');
-		return this;
-	}
+  if (arguments.length === 0) {
+    console.warn('broadcast() called without any arguments');
+    return this;
+  }
 
-	// handle special case for states
-	var event = arguments[0].toUpperCase();
-	if (event in Stream.STATES) {
-		this.state = Stream.STATES[event];
-	}
-	this.emit.apply(this, arguments);
+  // handle special case for states
+  var event = arguments[0].toUpperCase();
+  if (event in Stream.STATES) {
+    this.state = Stream.STATES[event];
+  }
+  this.emit.apply(this, arguments);
 }
 
 /**
@@ -13019,10 +13321,10 @@ Stream.prototype.onbroadcast = function () {
  * @return {Function}
  */
 Stream.prototype._broadcastOrEmit = function (broadcast) {
-	if (broadcast === false) {
-		return this.emit.bind(this);
-	}
-	return this.broadcast.bind(this);
+  if (broadcast === false) {
+    return this.emit.bind(this);
+  }
+  return this.broadcast.bind(this);
 }
 
 /**
@@ -13031,17 +13333,17 @@ Stream.prototype._broadcastOrEmit = function (broadcast) {
  * @return {Stream} this
  */
 Stream.prototype.reset = function (broadcast) {
-	this._broadcastOrEmit(broadcast)('reset');
-	return this;
+  this._broadcastOrEmit(broadcast)('reset');
+  return this;
 }
 
 /**
  * States that the stream can be in.
  */
 Stream.STATES = {
-	DEFAULT: 0,
-	PAUSE: 1,
-	RESUME: 2
+  DEFAULT: 0,
+  PAUSE: 1,
+  RESUME: 2
 };
 
 /**
@@ -13053,12 +13355,12 @@ Stream.prototype.state = Stream.STATES.DEFAULT;
  * Create a propogating function for each state.
  */
 _.each(Stream.STATES, function (value, name) {
-	name = name.toLowerCase();
-	Stream.prototype[name] = function (broadcast) {
-		this.state = value;
-		this._broadcastOrEmit(broadcast)(name);
-		return this;
-	};
+  name = name.toLowerCase();
+  Stream.prototype[name] = function (broadcast) {
+    this.state = value;
+    this._broadcastOrEmit(broadcast)(name);
+    return this;
+  };
 });
 
 module.exports = Stream;
@@ -13076,15 +13378,15 @@ var stream = require('./stream');
  * @return {function}
  */
 function getPropertyFunc(value) {
-	if (_.isUndefined(value)) {
-		return function (chunk) { return chunk; }
-	} else if (_.isString(value)) {
-		return function (chunk) { return chunk[value]; }
-	} else if (_.isFunction(value)) {
-		return value;
-	} else {
-		throw new Error('value must be a string or function');
-	}
+  if (_.isUndefined(value)) {
+    return function (chunk) { return chunk; }
+  } else if (_.isString(value)) {
+    return function (chunk) { return chunk[value]; }
+  } else if (_.isFunction(value)) {
+    return value;
+  } else {
+    throw new Error('value must be a string or function');
+  }
 }
 
 /**
@@ -13094,10 +13396,10 @@ function getPropertyFunc(value) {
  * @return {stream}
  */
 exports.func = function (fn) {
-	return stream(function (chunk) {
-		var results = fn.call(this, chunk);
-		this.push(results);
-	})
+  return stream(function (chunk) {
+    var results = fn.call(this, chunk);
+    this.push(results);
+  })
 }
 
 /**
@@ -13107,19 +13409,19 @@ exports.func = function (fn) {
  * @return {stream}
  */
 exports.pass = function (fn) {
-	return stream(function (chunk) {
-		if (fn) fn.call(this, _.clone(chunk));
-		this.push(chunk);
-	})
+  return stream(function (chunk) {
+    if (fn) fn.call(this, _.clone(chunk));
+    this.push(chunk);
+  })
 };
 
 // will only push a chunk if the function it's passed to returns true
 exports.filter = function (fn) {
-	return stream(function (chunk) {
-		if (fn.call(this, chunk)) {
-			this.push(chunk);
-		}
-	})
+  return stream(function (chunk) {
+    if (fn.call(this, chunk)) {
+      this.push(chunk);
+    }
+  })
 };
 
 /**
@@ -13155,8 +13457,8 @@ exports.has = function (property) {
  * @return {stream}
  */
 exports.get = function (value) {
-	var fn = getPropertyFunc(value);
-	return exports.func(fn);
+  var fn = getPropertyFunc(value);
+  return exports.func(fn);
 };
 
 /**
@@ -13165,13 +13467,13 @@ exports.get = function (value) {
  * @return {stream}
  */
 exports.single = function () {
-	return stream(function (chunk) {
-		if (_.isArray(chunk)) {
-			_.each(chunk, this.push, this);
-		} else {
-			this.push(chunk);
-		}
-	});
+  return stream(function (chunk) {
+    if (_.isArray(chunk)) {
+      _.each(chunk, this.push, this);
+    } else {
+      this.push(chunk);
+    }
+  });
 };
 
 /**
@@ -13181,7 +13483,7 @@ exports.single = function () {
  * @return {stream}
  */
 exports.defaults = function (opts) {
-	return exports.func(_.partialRight(_.defaults, opts))
+  return exports.func(_.partialRight(_.defaults, opts))
 }
 
 /**
@@ -13191,13 +13493,13 @@ exports.defaults = function (opts) {
  * @return stream
  */
 exports.log = function (prefix) {
-	return exports.pass(function (chunk) {
-		if (prefix) {
-			console.log(prefix, chunk);
-		} else {
-			console.log(chunk);
-		}
-	});
+  return exports.pass(function (chunk) {
+    if (prefix) {
+      console.log(prefix, chunk);
+    } else {
+      console.log(chunk);
+    }
+  });
 };
 
 },{"./deps":4,"./stream":9}],11:[function(require,module,exports){
@@ -13206,61 +13508,61 @@ var _ = deps._;
 
 // turns urls and twitter handles/hashtags into links
 exports.linkify = function (text) {
-	// urls
-	text = text.replace(
-		/(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig,
-		'<a class="linkify-link" target=_blank href="$1">$1</a>'
-	);
-	// usernames
-	text = text.replace(
-		/(^|\s)@(\w+)/g,
-		'$1<a class="linkify-username" data-username="$2" target=_blank href="http://twitter.com/$2">'
-		+ '@$2' +
-		'</a>'
-	);
-	// hashtags
-	text = text.replace(
-		/(^|\s)#(\w+)/g,
-		'$1<a class="linkify-hashtag" data-hashtag="$2" target=_blank href="http://twitter.com/search?q=%23$2">'
-			+ '#$2' +
-		'</a>'
-	);
-	return text;
+  // urls
+  text = text.replace(
+    /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig,
+    '<a class="linkify-link" target=_blank href="$1">$1</a>'
+  );
+  // usernames
+  text = text.replace(
+    /(^|\s)@(\w+)/g,
+    '$1<a class="linkify-username" data-username="$2" target=_blank href="http://twitter.com/$2">'
+    + '@$2' +
+    '</a>'
+  );
+  // hashtags
+  text = text.replace(
+    /(^|\s)#(\w+)/g,
+    '$1<a class="linkify-hashtag" data-hashtag="$2" target=_blank href="http://twitter.com/search?q=%23$2">'
+      + '#$2' +
+    '</a>'
+  );
+  return text;
 };
 
 exports.truncate = function (text, len) {
-	if (text.length > len) {
-		return text.substring(0, len - 3) + '...';
-	}
-	return text;
+  if (text.length > len) {
+    return text.substring(0, len - 3) + '...';
+  }
+  return text;
 };
 
 exports.cycle = function (value) {
-	if (_.isNumber(value)) {
-		value = _.range(1, value + 1);
-	}
-	var current = -1; // so the first call will get the first value
-	return function () {
-		current = current === value.length - 1 ? 0 : current + 1;
-		var target = value[current];
-		return _.isFunction(target) ? target() : target;
-	}
+  if (_.isNumber(value)) {
+    value = _.range(1, value + 1);
+  }
+  var current = -1; // so the first call will get the first value
+  return function () {
+    current = current === value.length - 1 ? 0 : current + 1;
+    var target = value[current];
+    return _.isFunction(target) ? target() : target;
+  }
 };
 
 exports.script = function (url) {
-	var script = document.createElement('script');
-	script.src = url;
-	document.body.appendChild(script);
-	return script;
+  var script = document.createElement('script');
+  script.src = url;
+  document.body.appendChild(script);
+  return script;
 };
 
 exports.argsOrArray = function (fn) {
-	return function () {
-		if (_.isArray(arguments[0])) {
-			return fn.apply(fn, arguments[0]);
-		}
-		return fn.apply(fn, arguments);
-	};
+  return function () {
+    if (_.isArray(arguments[0])) {
+      return fn.apply(fn, arguments[0]);
+    }
+    return fn.apply(fn, arguments);
+  };
 };
 
 /**
@@ -13270,35 +13572,37 @@ exports.argsOrArray = function (fn) {
  * @return {undefined}
  */
 exports.utc = function (date) {
-	if (!date) {
-		date = new Date();
-	} else if (_.isString(date)) {
-		date = new Date(date);
-	}
+  if (!date) {
+    date = new Date();
+  } else if (_.isString(date)) {
+    date = new Date(date);
+  }
     return new Date(Date.UTC(
-		date.getFullYear(),
-		date.getMonth(),
-		date.getDate(),
-		date.getHours(),
-		date.getMinutes(),
-		date.getSeconds()
-	));
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    date.getHours(),
+    date.getMinutes(),
+    date.getSeconds()
+  ));
 };
 
 exports.windowSize = function () {
-	var w = window;
-	var e = document.documentElement;
-	var g = document.getElementsByTagName('body')[0];
-	var width = w.innerWidth || e.clientWidth || g.clientWidth;
-	var height = w.innerHeight || e.clientHeight || g.clientHeight;
-	return {
-		width: width,
-		height: height
-	};
+  var w = window;
+  var e = document.documentElement;
+  var g = document.getElementsByTagName('body')[0];
+  var width = w.innerWidth || e.clientWidth || g.clientWidth;
+  var height = w.innerHeight || e.clientHeight || g.clientHeight;
+  return {
+    width: width,
+    height: height
+  };
 };
 
 module.exports = exports;
 
 },{"./deps":4}]},{},[5])
+  })();
 
-}
+
+}]);

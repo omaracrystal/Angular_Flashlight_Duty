@@ -1,4 +1,4 @@
-(function(){
+function darkroom(){
 
   'use strict';
 
@@ -29,4 +29,4 @@ $('.masked').on({
 });
 
 
-})();
+}
